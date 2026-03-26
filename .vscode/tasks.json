@@ -1,0 +1,191 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build BinXray (x64 Debug)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\invoke-msbuild.ps1",
+        "-ProjectPath",
+        "src\\BinXray.slnx",
+        "-Configuration",
+        "Debug",
+        "-Platform",
+        "x64",
+        "-Targets",
+        "Build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$msCompile"
+      ]
+    },
+    {
+      "label": "Build BinXray (x64 Release)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\invoke-msbuild.ps1",
+        "-ProjectPath",
+        "src\\BinXray.slnx",
+        "-Configuration",
+        "Release",
+        "-Platform",
+        "x64",
+        "-Targets",
+        "Build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$msCompile"
+      ]
+    },
+    {
+      "label": "Rebuild BinXray (x64 Debug)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\invoke-msbuild.ps1",
+        "-ProjectPath",
+        "src\\BinXray.slnx",
+        "-Configuration",
+        "Debug",
+        "-Platform",
+        "x64",
+        "-Targets",
+        "Rebuild"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$msCompile"
+      ]
+    },
+    {
+      "label": "Build BinXray (Win32 Debug)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\invoke-msbuild.ps1",
+        "-ProjectPath",
+        "src\\BinXray.slnx",
+        "-Configuration",
+        "Debug",
+        "-Platform",
+        "Win32",
+        "-Targets",
+        "Build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$msCompile"
+      ]
+    },
+    {
+      "label": "Build BinXray (Win32 Release)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        "${workspaceFolder}\\scripts\\invoke-msbuild.ps1",
+        "-ProjectPath",
+        "src\\BinXray.slnx",
+        "-Configuration",
+        "Release",
+        "-Platform",
+        "Win32",
+        "-Targets",
+        "Build"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [
+        "$msCompile"
+      ]
+    },
+    {
+      "label": "Run BinXray (x64 Debug)",
+      "type": "process",
+      "command": "${workspaceFolder}\\src\\x64\\Debug\\BinXray.exe",
+      "options": {
+        "cwd": "${workspaceFolder}\\src\\BinXray"
+      },
+      "dependsOn": [
+        "Build BinXray (x64 Debug)"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Tests (x64 Debug)",
+      "type": "process",
+      "command": "${workspaceFolder}\\src\\x64\\Debug\\BinXray.Tests.exe",
+      "options": {
+        "cwd": "${workspaceFolder}\\src\\BinXray.Tests"
+      },
+      "dependsOn": [
+        "Build BinXray (x64 Debug)"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run BinXray (Win32 Debug)",
+      "type": "process",
+      "command": "${workspaceFolder}\\src\\Debug\\BinXray.exe",
+      "options": {
+        "cwd": "${workspaceFolder}\\src\\BinXray"
+      },
+      "dependsOn": [
+        "Build BinXray (Win32 Debug)"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Tests (Win32 Debug)",
+      "type": "process",
+      "command": "${workspaceFolder}\\src\\Debug\\BinXray.Tests.exe",
+      "options": {
+        "cwd": "${workspaceFolder}\\src\\BinXray.Tests"
+      },
+      "dependsOn": [
+        "Build BinXray (Win32 Debug)"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    }
+  ]
+}

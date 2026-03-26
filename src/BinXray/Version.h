@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: MIT
+// Version.h - Centralized application version metadata.
+#pragma once
+
+#define BXR_VERSION_MAJOR 0
+#define BXR_VERSION_MINOR 1
+#define BXR_VERSION_PATCH 0
+#define BXR_VERSION_BUILD 0
+
+#define BXR_VERSION_FILEVERSION BXR_VERSION_MAJOR, BXR_VERSION_MINOR, BXR_VERSION_PATCH, BXR_VERSION_BUILD
+
+#define BXR_STRINGIZE_IMPL(x) #x
+#define BXR_STRINGIZE(x) BXR_STRINGIZE_IMPL(x)
+
+#define BXR_VERSION_STRING \
+    BXR_STRINGIZE(BXR_VERSION_MAJOR) "." BXR_STRINGIZE(BXR_VERSION_MINOR) "." BXR_STRINGIZE(BXR_VERSION_PATCH)
+
+#define BXR_WIDE_IMPL(x) L##x
+#define BXR_WIDE(x) BXR_WIDE_IMPL(x)
+#define BXR_VERSION_WSTRING BXR_WIDE(BXR_VERSION_STRING)
+
+#ifndef BXR_BUILD_REPO_URL
+#define BXR_BUILD_REPO_URL "unknown"
+#endif
+
+#ifndef BXR_BUILD_BRANCH
+#define BXR_BUILD_BRANCH "unknown"
+#endif
+
+#ifndef BXR_BUILD_COMMIT
+#define BXR_BUILD_COMMIT "unknown"
+#endif
+
+#ifndef BXR_BUILD_VERSION
+#define BXR_BUILD_VERSION BXR_VERSION_STRING
+#endif

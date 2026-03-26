@@ -1,0 +1,35 @@
+name: release-packaging
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-stage:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build release + stage artifact
+        shell: pwsh
+        run: |
+          ./scripts/test-release-pipeline-local.ps1 -SkipPackaging
+
+      - name: Upload staged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binxray-release-staging
+          path: artifacts/release
+          if-no-files-found: warn

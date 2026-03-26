@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!-- Phase-1 placeholder for BinXray MSI authoring. -->
+  <Package Name="BinXray" Manufacturer="Digixoil" Version="0.1.0.0" UpgradeCode="4EC6E6EE-EC80-4CBE-B8EA-A67524480EAA">
+    <SummaryInformation Description="BinXray installer placeholder." />
+  </Package>
+</Wix>

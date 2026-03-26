@@ -1,0 +1,49 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug BinXray (x64)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\src\\x64\\Debug\\BinXray.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}\\src\\BinXray",
+      "environment": [],
+      "preLaunchTask": "Build BinXray (x64 Debug)"
+    },
+    {
+      "name": "Debug BinXray.Tests (x64)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\src\\x64\\Debug\\BinXray.Tests.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}\\src\\BinXray.Tests",
+      "environment": [],
+      "preLaunchTask": "Build BinXray (x64 Debug)"
+    },
+    {
+      "name": "Debug BinXray (Win32)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\src\\Debug\\BinXray.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}\\src\\BinXray",
+      "environment": [],
+      "preLaunchTask": "Build BinXray (Win32 Debug)"
+    },
+    {
+      "name": "Debug BinXray.Tests (Win32)",
+      "type": "cppvsdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}\\src\\Debug\\BinXray.Tests.exe",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}\\src\\BinXray.Tests",
+      "environment": [],
+      "preLaunchTask": "Build BinXray (Win32 Debug)"
+    }
+  ]
+}

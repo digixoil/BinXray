@@ -1,0 +1,21 @@
+// SPDX-License-Identifier: MIT
+
+#include "ByteFormatter.h"
+
+#include <cstdio>
+
+namespace BinXray::Core {
+
+std::string formatByteHex(const std::uint8_t value) {
+    char buffer[3] = {};
+    std::snprintf(buffer, sizeof(buffer), "%02X", static_cast<unsigned int>(value));
+    return std::string(buffer);
+}
+
+std::string formatOffsetHex(const std::size_t offset) {
+    char buffer[11] = {};
+    std::snprintf(buffer, sizeof(buffer), "0x%08zX", offset);
+    return std::string(buffer);
+}
+
+} // namespace BinXray::Core
