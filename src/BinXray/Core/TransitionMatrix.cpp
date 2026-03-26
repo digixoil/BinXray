@@ -11,7 +11,6 @@ TransitionMatrix::TransitionMatrix()
       m_startOffset(0),
       m_endOffset(0),
       m_maxCount(0) {
-    m_counts.fill(0);
 }
 
 void TransitionMatrix::compute(const std::vector<std::uint8_t>& bytes, std::size_t startOffsetInclusive, std::size_t endOffsetExclusive) {

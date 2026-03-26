@@ -2,11 +2,11 @@
 
 #include "HexViewPanel.h"
 
-#include "Core/ByteFormatter.h"
+#include "UIConstants.h"
 #include "imgui.h"
 
 #include <algorithm>
-#include <string>
+#include <cstdio>
 
 namespace BinXray::UI {
 
@@ -43,32 +43,37 @@ void HexViewPanel::drawContent(const Core::BinaryDocument& document,
         return;
     }
 
-    const std::size_t bytesPerRow = 16;
-    const std::size_t maxVisibleBytes = std::min(rangeLength, static_cast<std::size_t>(4096));
+    const std::size_t bytesPerRow     = Constants::kHexBytesPerRow;
+    const std::size_t maxVisibleBytes = std::min(rangeLength, Constants::kHexMaxVisibleBytes);
 
     ImGui::BeginChild("HexViewScrollRegion");
 
     for (std::size_t relativeOffset = 0; relativeOffset < maxVisibleBytes; relativeOffset += bytesPerRow) {
         const std::size_t absoluteOffset = rangeStart + relativeOffset;
-        const std::string offsetLabel = Core::formatOffsetHex(absoluteOffset);
-        ImGui::TextUnformatted(offsetLabel.c_str());
+        char offsetBuf[13];
+        std::snprintf(offsetBuf, sizeof(offsetBuf), "0x%08zX", absoluteOffset);
+        ImGui::TextUnformatted(offsetBuf);
         ImGui::SameLine();
 
         for (std::size_t column = 0; column < bytesPerRow && (relativeOffset + column) < maxVisibleBytes; ++column) {
-            const std::size_t index = absoluteOffset + column;
-            const std::string valueLabel = Core::formatByteHex(bytes[index]);
-            const std::string buttonId = valueLabel + "##byte_" + std::to_string(index);
+            const std::size_t index      = absoluteOffset + column;
+            const bool        isSelected = (index == selectedOffset);
 
-            if (index == selectedOffset) {
-                ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(55, 120, 220, 255));
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(75, 140, 240, 255));
+            char hexBuf[3];
+            std::snprintf(hexBuf, sizeof(hexBuf), "%02X", static_cast<unsigned int>(bytes[index]));
+
+            if (isSelected) {
+                ImGui::PushStyleColor(ImGuiCol_Button,        Constants::kHexSelectedColor);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Constants::kHexSelectedHoveredColor);
             }
 
-            if (ImGui::SmallButton(buttonId.c_str())) {
+            ImGui::PushID(static_cast<int>(index));
+            if (ImGui::SmallButton(hexBuf)) {
                 selectedOffset = index;
             }
+            ImGui::PopID();
 
-            if (index == selectedOffset) {
+            if (isSelected) {
                 ImGui::PopStyleColor(2);
             }
 

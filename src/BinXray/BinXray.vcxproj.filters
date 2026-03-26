@@ -79,6 +79,9 @@
     <ClInclude Include="UI\StatusBar.h">
       <Filter>UI</Filter>
     </ClInclude>
+    <ClInclude Include="UI\UIConstants.h">
+      <Filter>UI</Filter>
+    </ClInclude>
     <ClInclude Include="Version.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>

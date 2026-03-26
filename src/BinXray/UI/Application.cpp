@@ -2,6 +2,7 @@
 
 #include "Application.h"
 
+#include "UIConstants.h"
 #include "Version.h"
 
 #include "imgui.h"
@@ -22,7 +23,7 @@ namespace BinXray::UI {
 
 namespace {
 Application* g_applicationInstance = nullptr;
-constexpr std::size_t kRibbonWidth = 128;
+constexpr wchar_t kWindowClass[] = L"BinXrayWindowClass";
 }
 
 Application::Application()
@@ -40,13 +41,14 @@ Application::Application()
       m_scaleEnabled(false),
       m_normalizeEnabled(false),
       m_fullViewEnabled(true),
-      m_blockSize(10240),
+      m_blockSize(Constants::kBlockSizeDefault),
       m_windowStartOffset(0),
       m_windowEndOffset(0),
       m_matrixDirty(true),
       m_isLoadingFile(false),
       m_loadingPath(),
       m_lastLoadError(),
+      m_ribbonWidth(Constants::kRibbonWidthDefault),
       m_hexViewPanel() {
     m_matrixLuminance.fill(0);
 }
@@ -74,7 +76,7 @@ bool Application::initialize(HINSTANCE hInstance) {
         nullptr,
         nullptr,
         nullptr,
-        L"BinXrayWindowClass",
+        kWindowClass,
         nullptr
     };
     ::RegisterClassExW(&wc);
@@ -83,10 +85,10 @@ bool Application::initialize(HINSTANCE hInstance) {
         wc.lpszClassName,
         L"BinXray",
         WS_OVERLAPPEDWINDOW,
-        100,
-        100,
-        1600,
-        900,
+        Constants::kWindowInitialX,
+        Constants::kWindowInitialY,
+        Constants::kWindowInitialWidth,
+        Constants::kWindowInitialHeight,
         nullptr,
         nullptr,
         wc.hInstance,
@@ -175,7 +177,7 @@ void Application::shutdown() {
     }
 
     if (m_hInstance != nullptr) {
-        ::UnregisterClassW(L"BinXrayWindowClass", m_hInstance);
+        ::UnregisterClassW(kWindowClass, m_hInstance);
         m_hInstance = nullptr;
     }
 
@@ -249,13 +251,7 @@ void Application::startAsyncFileLoad(const std::wstring& path) {
     m_lastLoadError.clear();
 
     m_asyncLoadFuture = std::async(std::launch::async, [path]() {
-        AsyncLoadResult asyncResult = {};
-        Core::BinaryLoadResult loadResult = Core::BinaryDocument::loadFileBytes(path);
-        asyncResult.success = loadResult.success;
-        asyncResult.bytes = std::move(loadResult.bytes);
-        asyncResult.sourcePath = std::move(loadResult.path);
-        asyncResult.error = std::move(loadResult.error);
-        return asyncResult;
+        return Core::BinaryDocument::loadFileBytes(path);
     });
 }
 
@@ -269,7 +265,7 @@ void Application::pollAsyncFileLoad() {
         return;
     }
 
-    AsyncLoadResult loadResult = m_asyncLoadFuture.get();
+    Core::BinaryLoadResult loadResult = m_asyncLoadFuture.get();
     m_asyncLoadFuture = {};
     m_isLoadingFile = false;
     m_loadingPath.clear();
@@ -279,7 +275,7 @@ void Application::pollAsyncFileLoad() {
         return;
     }
 
-    m_document.replace(std::move(loadResult.bytes), std::move(loadResult.sourcePath));
+    m_document.replace(std::move(loadResult.bytes), std::move(loadResult.path));
     m_selectedOffset = 0;
     refreshRangeAfterDocumentChange();
 }
@@ -452,7 +448,7 @@ void Application::drawControlsColumn() {
     }
 
     if (!m_lastLoadError.empty()) {
-        ImGui::TextColored(ImVec4(0.95F, 0.40F, 0.40F, 1.0F), "Load Error:");
+        ImGui::TextColored(Constants::kErrorTextColor, "Load Error:");
         ImGui::TextWrapped("%ls", m_lastLoadError.c_str());
     }
 
@@ -464,9 +460,14 @@ void Application::drawControlsColumn() {
     ImGui::EndDisabled();
 
     controlsChanged = ImGui::Checkbox("Full View", &m_fullViewEnabled) || controlsChanged;
-    if (ImGui::InputInt("Block Size", &m_blockSize, 256, 2048)) {
-        m_blockSize = std::max(2, m_blockSize);
+    if (ImGui::InputInt("Block Size", &m_blockSize, Constants::kBlockSizeStep, Constants::kBlockSizeFastStep)) {
+        m_blockSize = std::max(Constants::kBlockSizeMin, m_blockSize);
         controlsChanged = true;
+    }
+
+    ImGui::Separator();
+    if (ImGui::InputInt("Ribbon Width", &m_ribbonWidth, Constants::kRibbonWidthStep, Constants::kRibbonWidthFastStep)) {
+        m_ribbonWidth = std::clamp(m_ribbonWidth, Constants::kRibbonWidthMin, Constants::kRibbonWidthMax);
     }
 
     if (controlsChanged) {
@@ -494,9 +495,7 @@ void Application::drawControlsColumn() {
     }
 }
 
-void Application::drawMatrixPlot(float heightPixels) {
-    (void)heightPixels;
-
+void Application::drawMatrixPlot() {
     const auto& bytes = m_document.bytes();
     if (bytes.empty()) {
         ImGui::TextUnformatted("No data loaded.");
@@ -507,34 +506,36 @@ void Application::drawMatrixPlot(float heightPixels) {
     ImGui::Separator();
 
     const ImVec2 available = ImGui::GetContentRegionAvail();
-    const float plotSize = std::max(64.0F, std::min(available.x, available.y));
+    const float plotSize = std::max(Constants::kMatrixPlotMinSize, std::min(available.x, available.y));
     const ImVec2 origin = ImGui::GetCursorScreenPos();
     ImGui::InvisibleButton("TransitionPlotCanvas", ImVec2(plotSize, plotSize));
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     const float cellSize = plotSize / static_cast<float>(Core::TransitionMatrix::kDimension);
-    for (std::size_t row = 0; row < Core::TransitionMatrix::kDimension; ++row) {
-        for (std::size_t column = 0; column < Core::TransitionMatrix::kDimension; ++column) {
-            const std::size_t index = row * Core::TransitionMatrix::kDimension + column;
-            const std::uint8_t intensity = m_matrixLuminance[index];
-            const ImU32 color = IM_COL32(intensity, intensity, intensity, 255);
-            const float x0 = origin.x + static_cast<float>(column) * cellSize;
-            const float y0 = origin.y + static_cast<float>(row) * cellSize;
-            drawList->AddRectFilled(ImVec2(x0, y0), ImVec2(x0 + cellSize, y0 + cellSize), color);
+    for (std::size_t i = 0; i < Core::TransitionMatrix::kCellCount; ++i) {
+        const std::uint8_t intensity = m_matrixLuminance[i];
+        if (intensity == 0) {
+            continue;
         }
+        const std::size_t row    = i / Core::TransitionMatrix::kDimension;
+        const std::size_t column = i % Core::TransitionMatrix::kDimension;
+        const ImU32  color = IM_COL32(intensity, intensity, intensity, 255);
+        const float  x0    = origin.x + static_cast<float>(column) * cellSize;
+        const float  y0    = origin.y + static_cast<float>(row)    * cellSize;
+        drawList->AddRectFilled(ImVec2(x0, y0), ImVec2(x0 + cellSize, y0 + cellSize), color);
     }
 
-    drawList->AddRect(origin, ImVec2(origin.x + plotSize, origin.y + plotSize), IM_COL32(200, 200, 200, 255), 0.0F, 0, 1.0F);
+    drawList->AddRect(origin, ImVec2(origin.x + plotSize, origin.y + plotSize), Constants::kMatrixBorderColor, 0.0F, 0, 1.0F);
 }
 
 void Application::drawCenterColumn() {
     rebuildMatrixIfDirty();
 
     const float totalHeight = ImGui::GetContentRegionAvail().y;
-    const float plotHeight = std::max(280.0F, totalHeight * 0.58F);
+    const float plotHeight  = std::max(Constants::kMatrixPlotMinHeight, totalHeight * Constants::kMatrixPlotHeightRatio);
 
     ImGui::BeginChild("MatrixView", ImVec2(0.0F, plotHeight), true);
-    drawMatrixPlot(plotHeight);
+    drawMatrixPlot();
     ImGui::EndChild();
 
     ImGui::Spacing();
@@ -556,10 +557,11 @@ void Application::drawRibbonColumn() {
         return;
     }
 
-    const std::size_t rowCount = (bytes.size() + kRibbonWidth - 1) / kRibbonWidth;
+    const std::size_t ribbonWidth = static_cast<std::size_t>(m_ribbonWidth);
+    const std::size_t rowCount = (bytes.size() + ribbonWidth - 1) / ribbonWidth;
     const float widthAvailable = ImGui::GetContentRegionAvail().x;
-    const float pixelScale = std::max(1.0F, std::floor((widthAvailable - 20.0F) / static_cast<float>(kRibbonWidth)));
-    const float contentWidth = static_cast<float>(kRibbonWidth) * pixelScale;
+    const float pixelScale   = std::max(1.0F, std::floor((widthAvailable - Constants::kRibbonScrollMargin) / static_cast<float>(ribbonWidth)));
+    const float contentWidth = static_cast<float>(ribbonWidth) * pixelScale;
     const float contentHeight = std::max(1.0F, static_cast<float>(rowCount) * pixelScale);
 
     ImGui::TextUnformatted("Bitmap Ribbon");
@@ -581,30 +583,30 @@ void Application::drawRibbonColumn() {
     for (std::size_t row = firstVisibleRow; row < lastVisibleRow; ++row) {
         const float y0 = contentOrigin.y + static_cast<float>(row) * pixelScale;
         const float y1 = y0 + pixelScale;
-        const std::size_t rowStart = row * kRibbonWidth;
+        const std::size_t rowStart = row * ribbonWidth;
 
-        for (std::size_t column = 0; column < kRibbonWidth; ++column) {
+        for (std::size_t column = 0; column < ribbonWidth; ++column) {
             const std::size_t byteIndex = rowStart + column;
             const std::uint8_t value = byteIndex < bytes.size() ? bytes[byteIndex] : 0;
-            const ImU32 color = IM_COL32(32, value, 64, 255);
+            const ImU32 color = IM_COL32(Constants::kRibbonByteColorR, value, Constants::kRibbonByteColorB, 255);
             const float x0 = contentOrigin.x + static_cast<float>(column) * pixelScale;
             drawList->AddRectFilled(ImVec2(x0, y0), ImVec2(x0 + pixelScale, y1), color);
         }
     }
 
     if (m_transitionMatrix.endOffset() > m_transitionMatrix.startOffset()) {
-        const std::size_t startRow = m_transitionMatrix.startOffset() / kRibbonWidth;
-        const std::size_t endRow = (m_transitionMatrix.endOffset() - 1) / kRibbonWidth;
+        const std::size_t startRow = m_transitionMatrix.startOffset() / ribbonWidth;
+        const std::size_t endRow   = (m_transitionMatrix.endOffset() - 1) / ribbonWidth;
         const float markerY0 = contentOrigin.y + static_cast<float>(startRow) * pixelScale;
         const float markerY1 = contentOrigin.y + static_cast<float>(endRow + 1) * pixelScale;
         drawList->AddRectFilled(
             ImVec2(contentOrigin.x, markerY0),
             ImVec2(contentOrigin.x + contentWidth, markerY1),
-            IM_COL32(255, 220, 70, 28));
+            Constants::kRibbonHighlightFill);
         drawList->AddRect(
             ImVec2(contentOrigin.x, markerY0),
             ImVec2(contentOrigin.x + contentWidth, markerY1),
-            IM_COL32(255, 220, 70, 180),
+            Constants::kRibbonHighlightBorder,
             0.0F,
             0,
             2.0F);
@@ -638,18 +640,18 @@ void Application::drawWorkspace() {
     ImGui::Begin("BinXrayWorkspace", nullptr, windowFlags);
     ImGui::PopStyleVar(2);
 
-    const float spacing = ImGui::GetStyle().ItemSpacing.x;
-    const float totalWidth = ImGui::GetContentRegionAvail().x;
-    float leftWidth = std::clamp(totalWidth * 0.22F, 220.0F, 360.0F);
-    float rightWidth = std::clamp(totalWidth * 0.18F, 180.0F, 320.0F);
+    const float spacing     = ImGui::GetStyle().ItemSpacing.x;
+    const float totalWidth  = ImGui::GetContentRegionAvail().x;
+    float leftWidth   = std::clamp(totalWidth * Constants::kLeftColumnRatio,  Constants::kLeftColumnMin,  Constants::kLeftColumnMax);
+    float rightWidth  = std::clamp(totalWidth * Constants::kRightColumnRatio, Constants::kRightColumnMin, Constants::kRightColumnMax);
     float centerWidth = totalWidth - leftWidth - rightWidth - (2.0F * spacing);
 
-    if (centerWidth < 260.0F) {
-        const float deficit = 260.0F - centerWidth;
-        const float leftReduction = std::min(deficit * 0.5F, std::max(0.0F, leftWidth - 180.0F));
-        leftWidth -= leftReduction;
+    if (centerWidth < Constants::kCenterColumnMin) {
+        const float deficit       = Constants::kCenterColumnMin - centerWidth;
+        const float leftReduction = std::min(deficit * 0.5F, std::max(0.0F, leftWidth - Constants::kLeftColumnHardMin));
+        leftWidth  -= leftReduction;
         rightWidth -= (deficit - leftReduction);
-        rightWidth = std::max(160.0F, rightWidth);
+        rightWidth  = std::max(Constants::kRightColumnHardMin, rightWidth);
         centerWidth = totalWidth - leftWidth - rightWidth - (2.0F * spacing);
     }
 
@@ -672,7 +674,6 @@ void Application::drawWorkspace() {
 
 void Application::renderFrame() {
     pollAsyncFileLoad();
-    rebuildMatrixIfDirty();
 
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
@@ -702,9 +703,8 @@ void Application::renderFrame() {
 
     ImGui::Render();
 
-    constexpr float clearColorWithAlpha[4] = {0.08F, 0.10F, 0.14F, 1.0F};
     m_deviceContext->OMSetRenderTargets(1, &m_mainRenderTargetView, nullptr);
-    m_deviceContext->ClearRenderTargetView(m_mainRenderTargetView, clearColorWithAlpha);
+    m_deviceContext->ClearRenderTargetView(m_mainRenderTargetView, Constants::kClearColor);
 
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
     m_swapChain->Present(1, 0);

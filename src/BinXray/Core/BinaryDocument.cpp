@@ -2,7 +2,6 @@
 
 #include "BinaryDocument.h"
 
-#include <cstring>
 #include <fstream>
 #include <utility>
 #include <vector>
@@ -22,31 +21,20 @@ BinaryLoadResult BinaryDocument::loadFileBytes(const std::wstring& path) {
 
     file.seekg(0, std::ios::end);
     const std::streamoff fileSize = file.tellg();
-    if (fileSize > 0) {
-        result.bytes.reserve(static_cast<std::size_t>(fileSize));
+    if (fileSize < 0) {
+        result.error = L"Unable to determine file size.";
+        return result;
     }
     file.seekg(0, std::ios::beg);
 
-    constexpr std::size_t chunkSize = 1024 * 1024;
-    std::vector<char> buffer(chunkSize);
-
-    while (file) {
-        file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
-        const std::streamsize bytesRead = file.gcount();
-        if (bytesRead <= 0) {
-            break;
+    if (fileSize > 0) {
+        result.bytes.resize(static_cast<std::size_t>(fileSize));
+        file.read(reinterpret_cast<char*>(result.bytes.data()), fileSize);
+        if (static_cast<std::streamoff>(file.gcount()) != fileSize) {
+            result.bytes.clear();
+            result.error = L"I/O error while reading file.";
+            return result;
         }
-
-        const std::size_t currentSize = result.bytes.size();
-        const std::size_t newSize = currentSize + static_cast<std::size_t>(bytesRead);
-        result.bytes.resize(newSize);
-        std::memcpy(result.bytes.data() + currentSize, buffer.data(), static_cast<std::size_t>(bytesRead));
-    }
-
-    if (file.bad()) {
-        result.bytes.clear();
-        result.error = L"I/O error while reading file.";
-        return result;
     }
 
     result.success = true;

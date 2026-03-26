@@ -9,9 +9,14 @@
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-%23FFDD00.svg?&style=flat&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/russlank)
 
 
-BinXray is the C++ successor of the original BinView utility, focused on fast interactive binary inspection with an ImGui desktop UI.
+Bin X-ray is the C++ successor of the original BinView utility, focused on fast interactive binary inspection with an ImGui desktop UI.
 
 This repository is organized to closely match the structure and workflow style used in `BinXray`.
+
+## Screenshots
+
+![Bin X-Ray](doc/images/screenshot-01.png)
+
 
 ## Current Phase
 

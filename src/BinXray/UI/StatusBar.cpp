@@ -2,6 +2,7 @@
 
 #include "StatusBar.h"
 
+#include "UIConstants.h"
 #include "imgui.h"
 
 namespace BinXray::UI {
@@ -25,7 +26,7 @@ void StatusBar::draw(const Core::BinaryDocument& document,
     }
 
     if (!lastLoadError.empty()) {
-        ImGui::TextColored(ImVec4(0.95F, 0.40F, 0.40F, 1.0F), "Last load error: %ls", lastLoadError.c_str());
+        ImGui::TextColored(Constants::kErrorTextColor, "Last load error: %ls", lastLoadError.c_str());
     }
     ImGui::End();
 }

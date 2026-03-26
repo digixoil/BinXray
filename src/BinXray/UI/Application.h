@@ -37,13 +37,6 @@ public:
     void shutdown();
 
 private:
-    struct AsyncLoadResult {
-        bool success;
-        std::vector<std::uint8_t> bytes;
-        std::wstring sourcePath;
-        std::wstring error;
-    };
-
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
     LRESULT handleWindowMessage(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -56,7 +49,7 @@ private:
     void drawWorkspace();
     void drawControlsColumn();
     void drawCenterColumn();
-    void drawMatrixPlot(float heightPixels);
+    void drawMatrixPlot();
     void drawRibbonColumn();
 
     bool createDeviceD3D(HWND hWnd);
@@ -89,10 +82,11 @@ private:
     bool m_matrixDirty;
 
     bool m_isLoadingFile;
-    std::future<AsyncLoadResult> m_asyncLoadFuture;
+    std::future<Core::BinaryLoadResult> m_asyncLoadFuture;
     std::wstring m_loadingPath;
     std::wstring m_lastLoadError;
 
+    int m_ribbonWidth;
     HexViewPanel m_hexViewPanel;
 };
 
