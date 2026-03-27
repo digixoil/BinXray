@@ -11,6 +11,8 @@
 
 **Bin X-ray** is the C++ successor of the original **[BinView](https://github.com/russlank/BinView)** utility, focused on fast interactive binary inspection with an ImGui desktop UI.
 
+At its core, the tool renders a **byte-pair scatterplot** — a 256×256 matrix where each cell `(x, y)` represents how often byte value `x` is immediately followed by byte value `y` in the file. This fingerprint reveals structure, repetition, compression, and entropy at a glance. In windowed mode the matrix becomes a **sliding byte-pair plot**, updating in real time as you scrub through the file via the bitmap ribbon overview, letting you watch structural patterns shift across the binary.
+
 ## Screenshots
 
 ![Bin X-Ray](doc/images/screenshot-04.png)
@@ -23,13 +25,12 @@
 Phase 2 parity core is now implemented:
 
 - Async `Open File` flow for large binaries.
-- Legacy-compatible transition matrix engine (`P[256][256]`).
-- Legacy control set: `Scale`, `Normalize`, `Full View`, `Block Size`.
-- Three-column workspace:
-  - left command controls
-  - middle plotting + hex views
-  - right bitmap ribbon (`128` width, `(32,byte,64)` coloring) with scrolling/scrub.
-- Expanded automated tests for binary loading and transition-matrix formulas.
+- Legacy-compatible byte-pair scatterplot engine (`P[256][256]`) with `Scale`, `Normalize`, `Full View`, and `Block Size` controls.
+- **Sliding byte-pair plot**: scrub the bitmap ribbon to slide the analysis window over the file and watch the scatterplot update in real time.
+- **Transition seeking**: hover the scatterplot to select a byte pair, see all matching offsets in a scrollable address list, and navigate directly to each hit in the hex view.
+- **Bitmap ribbon navigation**: click any pixel to jump to that byte offset; red pointer triangles and a coordinate label mark the current position.
+- Three-column workspace: left controls · centre plot + hex view · right bitmap ribbon.
+- Expanded automated tests for binary loading, transition-matrix formulas, and offset scanning.
 
 ## Requirements
 
