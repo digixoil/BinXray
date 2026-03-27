@@ -14,6 +14,9 @@ jobs:
     runs-on: windows-latest
 
     env:
+      # Opt into Node.js 24 for all JavaScript actions ahead of the June 2026 forced migration.
+      # Remove once all actions used here ship native Node.js 24 support.
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
       # Update these toolchain pins when the runner image changes or when a dependency upgrade
       # is required. Keep WiX major version aligned with packaging/build-packages.ps1 checks.
       DOTNET_VERSION: "9.0.x"
