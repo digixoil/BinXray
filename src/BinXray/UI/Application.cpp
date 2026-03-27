@@ -59,6 +59,20 @@ ImU32 intensityToHeatMap(std::uint8_t intensity) {
         255);
 }
 
+/// Pre-built 256-entry LUT mapping intensity → heat-map ImU32.
+/// Avoids repeated per-pixel branching in hot rendering loops.
+const ImU32* getHeatMapLUT() {
+    static ImU32 lut[256];
+    static bool built = false;
+    if (!built) {
+        for (int i = 0; i < 256; ++i) {
+            lut[i] = intensityToHeatMap(static_cast<std::uint8_t>(i));
+        }
+        built = true;
+    }
+    return lut;
+}
+
 }
 
 static std::wstring utf8ToWide(const char* text) {
@@ -117,7 +131,12 @@ Application::Application()
       m_3dPitch(Constants::k3DPlotDefaultPitch),
       m_3dAutoRotate(false),
       m_3dAutoRotateSpeed(Constants::k3DAutoRotateSpeedDefault),
-      m_3dElevationDeg(30.0F) {
+      m_3dElevationDeg(30.0F),
+      m_3dPointOpacity(Constants::k3DOpacityDefault),
+      m_3dBgMode(Constants::k3DBgModeDefault),
+      m_3dBgCustomColor{Constants::k3DBgCustomDefault[0],
+                        Constants::k3DBgCustomDefault[1],
+                        Constants::k3DBgCustomDefault[2]} {
     m_matrixLuminance.fill(0);
 }
 
@@ -145,7 +164,7 @@ bool Application::initialize(HINSTANCE hInstance) {
         hInstance, MAKEINTRESOURCEW(IDI_APPICON), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR));
     ::RegisterClassExW(&wc);
 
-    std::wstring windowTitle = L"BinXray v";
+    std::wstring windowTitle = L"Bin X-ray v";
     windowTitle += BXR_VERSION_WSTRING;
 
     std::wstring branchWide = utf8ToWide(BXR_BUILD_BRANCH);
@@ -663,6 +682,22 @@ void Application::drawControlsColumn() {
             Constants::k3DAutoRotateSpeedMin, Constants::k3DAutoRotateSpeedMax, "%.2f");
         ImGui::SliderFloat("Elevation", &m_3dElevationDeg,
             Constants::k3DElevationMin, Constants::k3DElevationMax, "%.1f");
+
+        ImGui::Separator();
+        ImGui::TextColored(Constants::kControlsLabelColor, "3D Appearance");
+        ImGui::SliderFloat("Opacity", &m_3dPointOpacity,
+            Constants::k3DOpacityMin, Constants::k3DOpacityMax, "%.2f");
+
+        ImGui::TextColored(Constants::kControlsLabelColor, "Background");
+        ImGui::RadioButton("Black",  &m_3dBgMode, Constants::k3DBgModeBlack);
+        ImGui::SameLine();
+        ImGui::RadioButton("White",  &m_3dBgMode, Constants::k3DBgModeWhite);
+        ImGui::SameLine();
+        ImGui::RadioButton("Custom", &m_3dBgMode, Constants::k3DBgModeCustom);
+        if (m_3dBgMode == Constants::k3DBgModeCustom) {
+            ImGui::ColorEdit3("##BgCustom", m_3dBgCustomColor,
+                ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        }
     }
 
     ImGui::Separator();
@@ -785,15 +820,16 @@ void Application::drawMatrixPlot() {
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     const float cellSize = plotSize / static_cast<float>(Core::TransitionMatrix::kDimension);
+    const ImU32* heatLUT = m_heatMapEnabled ? getHeatMapLUT() : nullptr;
     for (std::size_t i = 0; i < Core::TransitionMatrix::kCellCount; ++i) {
         const std::uint8_t intensity = m_matrixLuminance[i];
         if (intensity == 0) {
             continue;
         }
-        const std::size_t row    = i / Core::TransitionMatrix::kDimension;
-        const std::size_t column = i % Core::TransitionMatrix::kDimension;
-        const ImU32  color = m_heatMapEnabled
-            ? intensityToHeatMap(intensity)
+        const std::size_t row    = i >> 8;  // i / 256  (kDimension is always 256)
+        const std::size_t column = i & 0xFF; // i % 256
+        const ImU32  color = heatLUT
+            ? heatLUT[intensity]
             : IM_COL32(intensity, intensity, intensity, 255);
         const float  x0    = origin.x + static_cast<float>(column) * cellSize;
         const float  y0    = origin.y + static_cast<float>(row)    * cellSize;
@@ -900,33 +936,53 @@ void Application::draw3DPlot() {
     const float halfPlot = plotSize * 0.5F;
     const float cx = canvasOrigin.x + halfPlot;
     const float cy = canvasOrigin.y + halfPlot;
-    // Projection scale so 256-unit cube fits inside the plot.
-    const float scale = plotSize * 0.35F;
+    // Fold the 1/127.5 normalisation into the projection scale so the hot
+    // loop only needs a subtract + multiply per coordinate.
+    const float rawScale = plotSize * 0.35F;
+    const float invNorm  = rawScale / 127.5F;
 
     // Lambda: project a [0,255] (x,y,z) coordinate to screen (px, py).
+    // Uses precomputed invNorm so the inner loop avoids 3 subtractions
+    // and 3 divisions per point.
     auto project = [&](float x, float y, float z, float& px, float& py) {
-        // Centre to [-1,+1].
-        const float nx = (x - 127.5F) / 127.5F;
-        const float ny = (y - 127.5F) / 127.5F;
-        const float nz = (z - 127.5F) / 127.5F;
+        // Centre to [-scale, +scale]: (val - 127.5) * invNorm.
+        const float sx = (x - 127.5F) * invNorm;
+        const float sy = (y - 127.5F) * invNorm;
+        const float sz = (z - 127.5F) * invNorm;
         // Apply yaw (around Y axis).
-        const float rx =  cosYaw * nx + sinYaw * nz;
-        const float rz = -sinYaw * nx + cosYaw * nz;
+        const float rx =  cosYaw * sx + sinYaw * sz;
+        const float rz = -sinYaw * sx + cosYaw * sz;
         // Apply pitch (around X axis).
-        const float ry = cosPitch * ny - sinPitch * rz;
-        const float rz2 = sinPitch * ny + cosPitch * rz;
+        const float ry = cosPitch * sy - sinPitch * rz;
         // Orthographic projection (drop Z after rotation).
-        (void)rz2;
-        px = cx + rx * scale;
-        py = cy + ry * scale;
+        px = cx + rx;
+        py = cy + ry;
     };
 
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
+    // Resolve background colour from the selected mode.
+    ImU32 bgColor;
+    if (m_3dBgMode == Constants::k3DBgModeWhite) {
+        bgColor = Constants::k3DBgColorWhite;
+    } else if (m_3dBgMode == Constants::k3DBgModeCustom) {
+        bgColor = IM_COL32(
+            static_cast<int>(m_3dBgCustomColor[0] * 255.0F),
+            static_cast<int>(m_3dBgCustomColor[1] * 255.0F),
+            static_cast<int>(m_3dBgCustomColor[2] * 255.0F), 255);
+    } else {
+        bgColor = Constants::k3DBgColorBlack;
+    }
+
     // Background fill.
     drawList->AddRectFilled(canvasOrigin,
         ImVec2(canvasOrigin.x + plotSize, canvasOrigin.y + plotSize),
-        Constants::k3DPlotBgColor);
+        bgColor);
+
+    // Clip all subsequent drawing (wireframe, labels, points) to the canvas.
+    const ImVec2 canvasMax = ImVec2(canvasOrigin.x + plotSize,
+                                     canvasOrigin.y + plotSize);
+    drawList->PushClipRect(canvasOrigin, canvasMax, true);
 
     // Draw wireframe cube edges (12 edges of a unit cube).
     {
@@ -962,29 +1018,28 @@ void Application::draw3DPlot() {
     const auto& points = m_trigramPlot.points();
     const std::uint32_t maxCount = m_trigramPlot.maxCount();
     const float ptRad = Constants::k3DPlotPointSize;
+    const ImU32 alphaShift = static_cast<ImU32>(m_3dPointOpacity * 255.0F) << 24;
+    const ImU32* heatLUT = m_heatMapEnabled ? getHeatMapLUT() : nullptr;
 
     for (const auto& pt : points) {
         const std::uint8_t intensity = Core::TrigramPlot::mapIntensity(
             pt.count, maxCount, m_scaleEnabled, m_normalizeEnabled);
         if (intensity == 0) continue;
 
-        const ImU32 color = m_heatMapEnabled
-            ? intensityToHeatMap(intensity)
-            : IM_COL32(intensity, intensity, intensity, 255);
+        const ImU32 color = heatLUT
+            ? ((heatLUT[intensity] & 0x00FFFFFF) | alphaShift)
+            : IM_COL32(intensity, intensity, intensity, 0) | alphaShift;
 
         float px, py;
         project(static_cast<float>(pt.x),
                 static_cast<float>(pt.y),
                 static_cast<float>(pt.z), px, py);
 
-        // Clip to canvas bounds.
-        if (px < canvasOrigin.x || px > canvasOrigin.x + plotSize ||
-            py < canvasOrigin.y || py > canvasOrigin.y + plotSize) {
-            continue;
-        }
         drawList->AddRectFilled(ImVec2(px - ptRad, py - ptRad),
                                 ImVec2(px + ptRad, py + ptRad), color);
     }
+
+    drawList->PopClipRect();
 
     // Border.
     drawList->AddRect(canvasOrigin,
