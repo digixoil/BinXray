@@ -95,6 +95,42 @@ projection with yaw/pitch rotation.
 - GitHub Actions release pipeline (`.github/workflows/release-packaging.yml`).
 - WiX 6.x packaging via `packaging/build-packages.ps1`.
 
+## Performance Optimizations
+
+### Dirty-Index Trigram Computation
+`TrigramPlot::compute()` uses a thread-local 64 MB voxel buffer.  Instead
+of zeroing all 16 M cells between recomputations, a dirty-index list
+tracks which cells were written.  Only those cells are extracted and reset,
+making the clear cost proportional to the number of unique trigrams rather
+than the full cube size.
+
+### Heat-Map Lookup Table
+`getHeatMapLUT()` builds a static 256-entry `ImU32` colour table once.
+Both the 2D matrix renderer and the 3D scatter loop index this table
+directly, eliminating per-pixel colour interpolation.
+
+### Projection Math Folding
+In `draw3DPlot()`, the division by 127.5 is folded into the scale factor
+(`invNorm = rawScale / 127.5F`).  Centering and projection are combined
+into a single multiply-add per axis per point.
+
+### Bit-Shift Matrix Loop
+`drawMatrixPlot()` replaces `i / 256` and `i % 256` with `i >> 8` and
+`i & 0xFF` for row/column extraction in the 65 536-element flat loop.
+
+### Post-Loop Max Count
+`TransitionMatrix::compute()` finds the maximum count with a single pass
+over the 64 K counts array after accumulation, instead of a per-iteration
+branch during the main scanning loop.
+
+### Event-Driven Idle Rendering
+`Application::run()` checks `needsContinuousRender()` each iteration.
+When no animation (auto-rotation), async I/O, or pending matrix
+recomputation is active, the loop calls
+`MsgWaitForMultipleObjects(INFINITE)` and blocks until the OS delivers an
+input or paint message.  This drops CPU and GPU utilisation to near-zero
+when the application is idle.
+
 ## Test Strategy
 
 - `BinXray.Tests` runs five suites: `ByteFormatterTests`,
