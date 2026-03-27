@@ -4,6 +4,7 @@
 
 #include "UIConstants.h"
 #include "Version.h"
+#include "resource.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_dx11.h"
@@ -24,6 +25,29 @@ namespace BinXray::UI {
 namespace {
 Application* g_applicationInstance = nullptr;
 constexpr wchar_t kWindowClass[] = L"BinXrayWindowClass";
+}
+
+static std::wstring utf8ToWide(const char* text) {
+    if (!text || text[0] == '\0') {
+        return {};
+    }
+
+    int size = ::MultiByteToWideChar(CP_UTF8, 0, text, -1, nullptr, 0);
+    if (size <= 1) {
+        return {};
+    }
+
+    std::wstring output(static_cast<size_t>(size - 1), L'\0');
+    ::MultiByteToWideChar(CP_UTF8, 0, text, -1, output.data(), size);
+    return output;
+}
+
+static std::wstring shortCommitWide(const char* commit) {
+    std::wstring commitWide = utf8ToWide(commit);
+    if (commitWide.size() > 12) {
+        commitWide.resize(12);
+    }
+    return commitWide;
 }
 
 Application::Application()
@@ -65,25 +89,38 @@ bool Application::initialize(HINSTANCE hInstance) {
     g_applicationInstance = this;
     m_hInstance = hInstance;
 
-    WNDCLASSEXW wc = {
-        sizeof(WNDCLASSEXW),
-        CS_CLASSDC,
-        Application::WndProc,
-        0L,
-        0L,
-        hInstance,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        kWindowClass,
-        nullptr
-    };
+    WNDCLASSEXW wc = {};
+    wc.cbSize        = sizeof(WNDCLASSEXW);
+    wc.style         = CS_CLASSDC;
+    wc.lpfnWndProc   = Application::WndProc;
+    wc.hInstance     = hInstance;
+    wc.lpszClassName = kWindowClass;
+    wc.hIcon   = static_cast<HICON>(::LoadImageW(
+        hInstance, MAKEINTRESOURCEW(IDI_APPICON), IMAGE_ICON, 32, 32, LR_DEFAULTCOLOR));
+    wc.hIconSm = static_cast<HICON>(::LoadImageW(
+        hInstance, MAKEINTRESOURCEW(IDI_APPICON), IMAGE_ICON, 16, 16, LR_DEFAULTCOLOR));
     ::RegisterClassExW(&wc);
+
+    std::wstring windowTitle = L"BinXray v";
+    windowTitle += BXR_VERSION_WSTRING;
+
+    std::wstring branchWide = utf8ToWide(BXR_BUILD_BRANCH);
+    std::wstring commitWide = shortCommitWide(BXR_BUILD_COMMIT);
+    if (!branchWide.empty() && branchWide != L"unknown") {
+        windowTitle += L" [";
+        windowTitle += branchWide;
+        if (!commitWide.empty() && commitWide != L"unknown") {
+            windowTitle += L" @ ";
+            windowTitle += commitWide;
+        }
+        windowTitle += L"]";
+    }
+
+    windowTitle += L" - Binary Analyzer";
 
     m_hWnd = ::CreateWindowW(
         wc.lpszClassName,
-        L"Bin X-ray",
+        windowTitle.c_str(),
         WS_OVERLAPPEDWINDOW,
         Constants::kWindowInitialX,
         Constants::kWindowInitialY,
