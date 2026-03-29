@@ -23,6 +23,29 @@ A companion **3D byte-trigram scatter plot** extends the analysis into three dim
 
 [![Watch the Demo video](doc/images/screenshot-04.png)](https://www.youtube.com/watch?v=EDPa4owmucA)
 
+## What Bin X-ray Is Great For
+
+- **Spotting structure in unknown binaries**: byte-transition fingerprints make repeated records, delimiters, padding, and format shifts visible quickly.
+- **Finding section boundaries and repeated layouts**: scrub with the ribbon and watch recurring visual motifs appear/disappear by region.
+- **Comparing random-looking vs organized regions**: compressed/encrypted sections usually look noise-like, while tables/headers/text-ish areas tend to form stronger structure.
+- **Jumping from anomaly to exact offset**: hover a transition, get matching offsets, jump directly into hex view, and continue investigation without context switching.
+- **Exploring higher-order patterns**: 3D trigram mode helps when pairwise transitions are not enough and triplet clusters reveal stronger grammar/encoding signals.
+
+## Best-Fit Audience
+
+- Reverse engineers working with unknown or proprietary file formats.
+- Firmware and embedded analysts scanning large blobs for behavior changes.
+- Security and malware analysts triaging suspicious sections quickly.
+- Low-level developers investigating binary logs, save files, packet captures, or custom storage formats.
+
+## Typical Workflow
+
+1. Open a file and scrub the ribbon to locate visually distinct regions.
+2. Use 2D transition view to identify interesting motifs and boundaries.
+3. Hover transitions to collect exact offsets and jump to hex instantly.
+4. Switch to 3D trigram view when 2D patterns are ambiguous.
+5. Iterate between visuals and byte-level inspection until structure is mapped.
+
 ## Features
 
 ### 2D Transition Analysis
@@ -60,6 +83,18 @@ A companion **3D byte-trigram scatter plot** extends the analysis into three dim
 ### Testing
 - Seven automated test suites: `ByteFormatterTests`, `BinaryDocumentTests`, `TransitionMatrixTests`, `TransitionSeekerTests`, `TrigramPlotTests`, `CrosshairCoordsTests`, `UILayoutLogicTests`.
 - Edge cases covered: empty/missing files, single byte, sub-ranges, boundary clamping, maxResults capping, self-transitions, inverted ranges, repeated trigram accumulation, mapIntensity modes, crosshair coordinate semantics, opacity-alpha validation.
+
+## Product Direction (High-Value Next Steps)
+
+Priority order:
+
+1. **Bookmarks and annotations** for persistent investigation sessions.
+2. **Entropy + histogram region strip** for explicit structure-vs-random signals.
+3. **Compare mode** for file/range diffs and variant triage.
+4. **Structured decoders/templates** to move from visual analysis to field-level interpretation.
+5. **Periodicity detector** for fixed-size records, framing, and repeated protocol/data blocks.
+
+See [Use Cases and Roadmap](doc/use-cases-and-roadmap.md) for expanded guidance.
 
 ## Requirements
 
