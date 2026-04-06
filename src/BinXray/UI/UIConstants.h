@@ -52,9 +52,12 @@ constexpr ImU32 kMatrixBorderColor     = IM_COL32(200, 200, 200, 255);
 /// Default width is 128 columns (matching legacy BinView).
 constexpr int            kRibbonWidthDefault    = 128;
 constexpr int            kRibbonWidthMin        =   4;
-constexpr int            kRibbonWidthMax        = 1024;
+constexpr int            kRibbonWidthMax        = 8192;
 constexpr int            kRibbonWidthStep       =   4;
 constexpr int            kRibbonWidthFastStep   =  64;
+/// Mouse-wheel tuning for ribbon-width changes (finer than keyboard/InputInt steps).
+constexpr int            kRibbonWidthWheelStep  =   1;
+constexpr int            kRibbonWidthWheelShiftStep = 16;
 constexpr float          kRibbonScrollMargin    = 20.0F;
 constexpr ImU32          kRibbonHighlightFill   = IM_COL32(255, 220,  70,  28);
 constexpr ImU32          kRibbonHighlightBorder = IM_COL32(255, 220,  70, 180);

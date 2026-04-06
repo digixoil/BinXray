@@ -201,7 +201,7 @@ bool runUILayoutLogicTests() {
             false, false, 1,
             100, 128,
             2, 4096, 256,
-            4, 1024, 64);
+            4, 8192, 1);
         passed = expectFalse(wheel.consumed, "ribbon-wheel: no ctrl not consumed") && passed;
         passed = expectTrue(wheel.action == RibbonModifierWheelAction::None, "ribbon-wheel: no ctrl action none") && passed;
         passed = expectInt(wheel.blockSize, 100, "ribbon-wheel: no ctrl block unchanged") && passed;
@@ -212,7 +212,7 @@ bool runUILayoutLogicTests() {
             true, false, 2,
             100, 128,
             2, 4096, 256,
-            4, 1024, 64);
+            4, 8192, 1);
         passed = expectTrue(wheel.consumed, "ribbon-wheel: ctrl consumed") && passed;
         passed = expectTrue(wheel.action == RibbonModifierWheelAction::BlockSize, "ribbon-wheel: ctrl action block") && passed;
         passed = expectInt(wheel.blockSize, 612, "ribbon-wheel: ctrl block updated") && passed;
@@ -223,27 +223,27 @@ bool runUILayoutLogicTests() {
             true, true, -3,
             600, 256,
             2, 4096, 256,
-            4, 1024, 64);
+            4, 8192, 1);
         passed = expectTrue(wheel.consumed, "ribbon-wheel: ctrl+shift consumed") && passed;
         passed = expectTrue(wheel.action == RibbonModifierWheelAction::RibbonWidth, "ribbon-wheel: ctrl+shift action width") && passed;
         passed = expectInt(wheel.blockSize, 600, "ribbon-wheel: ctrl+shift block unchanged") && passed;
-        passed = expectInt(wheel.ribbonWidth, 64, "ribbon-wheel: ctrl+shift width updated") && passed;
+        passed = expectInt(wheel.ribbonWidth, 253, "ribbon-wheel: ctrl+shift width updated") && passed;
 
         // Ctrl+Shift width clamps at min/max.
         wheel = applyRibbonModifierWheel(
             true, true, 1000,
-            600, 900,
+            600, 8100,
             2, 4096, 256,
-            4, 1024, 64);
+            4, 8192, 1);
         passed = expectTrue(wheel.consumed, "ribbon-wheel: ctrl+shift upper clamp still consumed") && passed;
-        passed = expectInt(wheel.ribbonWidth, 1024, "ribbon-wheel: ctrl+shift width upper clamp") && passed;
+        passed = expectInt(wheel.ribbonWidth, 8192, "ribbon-wheel: ctrl+shift width upper clamp") && passed;
 
         // Ctrl at lower bound remains clamped but stays consumed.
         wheel = applyRibbonModifierWheel(
             true, false, -1000,
             2, 128,
             2, 4096, 256,
-            4, 1024, 64);
+            4, 8192, 1);
         passed = expectTrue(wheel.consumed, "ribbon-wheel: ctrl lower clamp still consumed") && passed;
         passed = expectTrue(wheel.action == RibbonModifierWheelAction::BlockSize, "ribbon-wheel: ctrl lower clamp action block") && passed;
         passed = expectInt(wheel.blockSize, 2, "ribbon-wheel: ctrl lower clamp at min") && passed;
@@ -253,7 +253,7 @@ bool runUILayoutLogicTests() {
             true, false, 0,
             400, 256,
             2, 4096, 256,
-            4, 1024, 64);
+            4, 8192, 1);
         passed = expectFalse(wheel.consumed, "ribbon-wheel: zero wheel not consumed") && passed;
         passed = expectTrue(wheel.action == RibbonModifierWheelAction::None, "ribbon-wheel: zero wheel action none") && passed;
 
@@ -262,7 +262,7 @@ bool runUILayoutLogicTests() {
             true, false, 1,
             400, 256,
             4096, 2, 256,
-            1024, 4, 64);
+            8192, 4, 1);
         passed = expectTrue(wheel.action == RibbonModifierWheelAction::BlockSize, "ribbon-wheel: reversed bounds still block action") && passed;
         passed = expectInt(wheel.blockSize, 656, "ribbon-wheel: reversed block bounds normalized") && passed;
     }

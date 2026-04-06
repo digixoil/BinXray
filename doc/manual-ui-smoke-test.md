@@ -29,7 +29,7 @@ Expected: window size changes directly from the ribbon; `Block Size` value follo
 Expected: analysis window length updates immediately via mouse drag.
 
 6. Adjust the `Ribbon Width` gauge under the numeric control.
-Expected: ribbon column width changes immediately and remains clamped to limits.
+Expected: ribbon column width changes immediately and remains clamped to limits (`4..8192`).
 
 7. Hover `Block Size` / `Ribbon Width` controls and use mouse wheel.
 Expected: values step up/down from wheel input (`Shift` accelerates); block-size wheel updates active window length.
@@ -43,31 +43,34 @@ Expected: `Block Size` changes from wheel input while ribbon is hovered.
 10. Hold `Ctrl+Shift` and use mouse wheel over ribbon pixels.
 Expected: `Ribbon Width` changes from wheel input while ribbon is hovered.
 
-11. Click ribbon pixel area once.
+11. Set `Ribbon Width` to a very large value (for example `4096` or `8192`).
+Expected: ribbon cells remain readable (minimum 1 px); horizontal scrolling appears so off-screen ribbon content and cursor markers can be reached.
+
+12. Click ribbon pixel area once.
 Expected: selected offset changes; hex view scrolls to selected location.
 
-12. Enable seeking in 2D mode, hover matrix plot pixels, click to freeze/unfreeze.
+13. Enable seeking in 2D mode, hover matrix plot pixels, click to freeze/unfreeze.
 Expected: crosshair and counts update on hover; freeze toggles only from plot area.
 
-13. Click matrix margin area (label margins).
+14. Click matrix margin area (label margins).
 Expected: no freeze toggle and no seek update from margin-only clicks.
 
-14. Select an address in the seek list.
+15. Select an address in the seek list.
 Expected: selected byte updates and hex view scroll target is applied once.
 
-15. Switch to 3D mode and verify seek behavior.
+16. Switch to 3D mode and verify seek behavior.
 Expected: 2D seek address pane is hidden; 3D interactions remain functional.
 
-16. Test narrow window behavior by aggressively shrinking width.
+17. Test narrow window behavior by aggressively shrinking width.
 Expected: no visual breakage; hex + addresses remain usable (stacked fallback when needed).
 
-17. Rotate 3D plot (drag), then enable auto-rotate.
+18. Rotate 3D plot (drag), then enable auto-rotate.
 Expected: manual drag works when auto-rotate is off; auto-rotate animates smoothly when on.
 
-18. Toggle 3D background modes (`Black`, `White`, `Custom`) and opacity slider.
+19. Toggle 3D background modes (`Black`, `White`, `Custom`) and opacity slider.
 Expected: visible contrast changes; point transparency changes immediately.
 
-19. Return to 2D mode and verify normal seeking still works.
+20. Return to 2D mode and verify normal seeking still works.
 Expected: seek behavior recovers cleanly; no stale 3D-only state leakage.
 
 ## Pass/Fail Criteria

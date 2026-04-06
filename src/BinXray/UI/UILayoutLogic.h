@@ -206,7 +206,7 @@ struct RibbonModifierWheelResult {
     int blockSizeStep,
     int ribbonWidthMin,
     int ribbonWidthMax,
-    int ribbonWidthStepWithShift) noexcept {
+    int ribbonWidthStep) noexcept {
     const int blockMin = std::min(blockSizeMin, blockSizeMax);
     const int blockMax = std::max(blockSizeMin, blockSizeMax);
     const int ribbonMin = std::min(ribbonWidthMin, ribbonWidthMax);
@@ -227,7 +227,7 @@ struct RibbonModifierWheelResult {
         result.ribbonWidth = adjustByStepClamped(
             result.ribbonWidth,
             wheelSteps,
-            ribbonWidthStepWithShift,
+            ribbonWidthStep,
             ribbonMin,
             ribbonMax);
         result.action = RibbonModifierWheelAction::RibbonWidth;

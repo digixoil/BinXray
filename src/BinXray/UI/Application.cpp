@@ -851,8 +851,8 @@ void Application::drawControlsColumn() {
         const int wheelSteps = wheelToStepCount(ImGui::GetIO().MouseWheel);
         if (wheelSteps != 0) {
             const int wheelStepSize = ImGui::GetIO().KeyShift
-                ? Constants::kRibbonWidthFastStep
-                : Constants::kRibbonWidthStep;
+                ? Constants::kRibbonWidthWheelShiftStep
+                : Constants::kRibbonWidthWheelStep;
             const int proposed = m_ribbonWidth + (wheelSteps * wheelStepSize);
             m_ribbonWidth = std::clamp(proposed, Constants::kRibbonWidthMin, Constants::kRibbonWidthMax);
         }
@@ -1464,13 +1464,14 @@ void Application::drawRibbonColumn() {
     const float rightMargin = Constants::kRibbonRightMargin;
     const float pixelSpace  = widthAvailable - leftMargin - rightMargin;
 
-    // Scale pixels to fit available space; use integer scaling when room allows,
-    // fractional scaling when the ribbon width exceeds the panel width.
+    // Scale pixels to fit available space; use integer upscaling when room allows.
+    // Do not shrink below 1 px per byte so very wide ribbons expand naturally
+    // and rely on horizontal scrolling for navigation.
     float pixelScale = pixelSpace / static_cast<float>(ribbonWidth);
     if (pixelScale >= 2.0F) {
         pixelScale = std::floor(pixelScale);
     }
-    pixelScale = std::max(0.5F, pixelScale);
+    pixelScale = std::max(1.0F, pixelScale);
 
     const float contentWidth  = static_cast<float>(ribbonWidth) * pixelScale;
     const float totalWidth    = leftMargin + contentWidth + rightMargin;
@@ -1676,7 +1677,7 @@ void Application::drawRibbonColumn() {
             Constants::kBlockSizeStep,
             Constants::kRibbonWidthMin,
             Constants::kRibbonWidthMax,
-            Constants::kRibbonWidthFastStep);
+            Constants::kRibbonWidthWheelStep);
 
         if (wheelResult.consumed) {
             if (wheelResult.action == Layout::RibbonModifierWheelAction::RibbonWidth) {
