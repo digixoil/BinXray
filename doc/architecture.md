@@ -57,6 +57,19 @@ Clicking a pixel in the bitmap ribbon selects that byte offset, scrolls
 the hex view, and moves the red cursor triangles.  Dragging the ribbon
 (in windowed mode) additionally scrubs the analysis range.
 
+When *Full View* is disabled, the active window highlight adds draggable
+top/bottom edge handles so users can resize window length directly on the
+ribbon.  Matching mouse gauges under **Block Size** and **Ribbon Width**
+in the controls panel provide an additional direct-manipulation path.
+While an edge drag is active, ribbon scrub/click actions are suppressed so
+resize intent wins deterministically.  Mouse wheel input over the two size
+controls or ribbon edges provides quick step-based width adjustment.  On the
+ribbon canvas itself, `Ctrl + Wheel` adjusts Block Size while
+`Ctrl + Shift + Wheel` adjusts Ribbon Width.
+Ribbon width is clamped to 8192 columns. For wide ribbons, cells are kept at
+minimum 1 px width and the ribbon child area expands horizontally so users can
+scroll to inspect off-screen content and cursor markers.
+
 ### Snap-to-Data
 When enabled, the seeking crosshair automatically snaps to the nearest
 non-empty transition cell within a configurable Chebyshev radius.
@@ -152,7 +165,9 @@ freeze/scrub/select actions.
 - Edge cases covered: missing/empty file loads, single byte, sub-ranges,
   boundary clamping, maxResults capping, self-transitions, inverted
   ranges, repeated trigram accumulation, mapIntensity modes, crosshair
-  coordinate semantics, opacity-alpha scaling validation.
+  coordinate semantics, opacity-alpha scaling validation, ribbon
+  window-edge resize clamping logic, and modifier-wheel routing/clamping
+  for ribbon shortcuts.
 - Process exit code reflects suite pass/fail for CI gating.
 
 ## Planned Evolution
